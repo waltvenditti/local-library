@@ -26,5 +26,11 @@ BookInstanceSchema
   return DateTime.fromJSDate(this.due_back).toLocaleString(DateTime.DATE_MED);
 });
 
+BookInstanceSchema
+.virtual('due_back_for_update')
+.get(function () {
+  return DateTime.fromJSDate(this.due_back).toFormat("yyyy-MM-dd")
+});
+
 //Export model
 module.exports = mongoose.model('BookInstance', BookInstanceSchema);

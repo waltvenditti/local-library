@@ -173,10 +173,106 @@ exports.bookinstance_delete_post = function (req, res, next) {
 
 // Display BookInstance update form on GET.
 exports.bookinstance_update_get = function (req, res) {
-  res.send("NOT IMPLEMENTED: BookInstance update GET");
+  async.parallel(
+    {
+      bookinstance: function (callback) {
+        BookInstance.findById(req.params.id)
+        .exec(callback);
+      },
+      books: function (callback) {
+        Book.find(callback);
+      },
+    },
+    function (err, results) {
+      if (err) {
+        return next(err);
+      }
+      if (results.bookinstance == null) {
+        // No results.
+        var err = new Error("Book instance not found");
+        err.status = 404;
+        return next(err);
+      }
+      // Success.
+      res.render("bookinstance_form", {
+        title: "Update Book Instance",
+        selected_book: results.bookinstance.book._id,
+        book_list: results.books,
+        bookinstance: results.bookinstance
+      });
+    }
+  );
 };
 
 // Handle bookinstance update on POST.
-exports.bookinstance_update_post = function (req, res) {
-  res.send("NOT IMPLEMENTED: BookInstance update POST");
-};
+exports.bookinstance_update_post = [
+
+  // Validate and sanitize fields.
+  body("book", "Book must be specified").trim().isLength({ min: 1 }).escape(),
+  body("imprint", "Imprint must be specified")
+    .trim()
+    .isLength({ min: 1 })
+    .escape(),
+  body("status").escape(),
+  body("due_back", "Invalid date")
+    .optional({ checkFalsy: true })
+    .isISO8601()
+    .toDate(),
+  
+  // stopped here. _id will be gotten from params so no need to get from the form and sanitize
+
+  // Process request after validation and sanitization.
+  (req, res, next) => {
+    // Extract the validation errors from a request.
+    const errors = validationResult(req);
+
+    // Create a Book object with escaped/trimmed data and old id.
+    var book = new Book({
+      title: req.body.title,
+      author: req.body.author,
+      summary: req.body.summary,
+      isbn: req.body.isbn,
+      genre: typeof req.body.genre === "undefined" ? [] : req.body.genre,
+      _id: req.params.id, //This is required, or a new ID will be assigned!
+    });
+
+    if (!errors.isEmpty()) {
+      // There are errors. Render form again with sanitized values/error messages.
+
+      // Get all authors and genres for form.
+      async.parallel(
+        {
+          authors: function (callback) {
+            Author.find(callback);
+          },
+          genres: function (callback) {
+            Genre.find(callback);
+          },
+        },
+        function (err, results) {
+          if (err) {
+            return next(err);
+          }
+
+          res.render("book_form", {
+            title: "Update Book",
+            authors: results.authors,
+            genres: results.genres,
+            book: book,
+            errors: errors.array(),
+          });
+        }
+      );
+      return;
+    } else {
+      // Data from form is valid. Update the record.
+      Book.findByIdAndUpdate(req.params.id, book, {}, function (err, thebook) {
+        if (err) {
+          return next(err);
+        }
+        // Successful - redirect to book detail page.
+        res.redirect(thebook.url);
+      });
+    }
+  },
+]
