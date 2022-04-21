@@ -67,5 +67,17 @@ AuthorSchema
   return `${f_dob} - ${f_dod}`;
 })
 
+AuthorSchema
+.virtual('dob_for_update')
+.get(function () {
+  return DateTime.fromJSDate(this.date_of_birth).toFormat("yyyy-MM-dd")
+});
+
+AuthorSchema
+.virtual('dod_for_update')
+.get(function () {
+  return DateTime.fromJSDate(this.date_of_death).toFormat("yyyy-MM-dd")
+});
+
 //Export model
 module.exports = mongoose.model("Author", AuthorSchema);

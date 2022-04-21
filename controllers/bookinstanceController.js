@@ -208,7 +208,10 @@ exports.bookinstance_update_get = function (req, res) {
 exports.bookinstance_update_post = [
 
   // Validate and sanitize fields.
-  body("book", "Book must be specified").trim().isLength({ min: 1 }).escape(),
+  body("book", "Book must be specified")
+    .trim()
+    .isLength({ min: 1 })
+    .escape(),
   body("imprint", "Imprint must be specified")
     .trim()
     .isLength({ min: 1 })
@@ -219,8 +222,6 @@ exports.bookinstance_update_post = [
     .isISO8601()
     .toDate(),
   
-  // stopped here. _id will be gotten from params so no need to get from the form and sanitize
-
   // Process request after validation and sanitization.
   (req, res, next) => {
     // Extract the validation errors from a request.
@@ -238,7 +239,7 @@ exports.bookinstance_update_post = [
     if (!errors.isEmpty()) {
       // There are errors. Render form again with sanitized values/error messages.
 
-      // Get all authors and genres for form.
+      // Get bookinstance and books for form.
       async.parallel(
         {
           bookinstance: function (callback) {
