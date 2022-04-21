@@ -226,13 +226,12 @@ exports.bookinstance_update_post = [
     // Extract the validation errors from a request.
     const errors = validationResult(req);
 
-    // Create a Book object with escaped/trimmed data and old id.
-    var book = new Book({
-      title: req.body.title,
-      author: req.body.author,
-      summary: req.body.summary,
-      isbn: req.body.isbn,
-      genre: typeof req.body.genre === "undefined" ? [] : req.body.genre,
+    // Create a BookInstance object with escaped/trimmed data and old id.
+    var bookinstance = new BookInstance({
+      book: req.body.book,
+      imprint: req.body.imprint,
+      status: req.body.status, 
+      due_back: req.body.due_back,
       _id: req.params.id, //This is required, or a new ID will be assigned!
     });
 
@@ -242,23 +241,24 @@ exports.bookinstance_update_post = [
       // Get all authors and genres for form.
       async.parallel(
         {
-          authors: function (callback) {
-            Author.find(callback);
+          bookinstance: function (callback) {
+            BookInstance.findById(req.params.id)
+            .exec(callback);
           },
-          genres: function (callback) {
-            Genre.find(callback);
-          },
+          books: function (callback) {
+            Book.find(callback);
+          }
         },
         function (err, results) {
           if (err) {
             return next(err);
           }
 
-          res.render("book_form", {
-            title: "Update Book",
-            authors: results.authors,
-            genres: results.genres,
-            book: book,
+          res.render("bookinstance_form", {
+            title: "Update Book Instance",
+            selected_book: results.bookinstance.book._id,
+             book_list: results.books,
+            bookinstance: results.bookinstance,
             errors: errors.array(),
           });
         }
@@ -266,12 +266,12 @@ exports.bookinstance_update_post = [
       return;
     } else {
       // Data from form is valid. Update the record.
-      Book.findByIdAndUpdate(req.params.id, book, {}, function (err, thebook) {
+      BookInstance.findByIdAndUpdate(req.params.id, bookinstance, {}, function (err, thebookinstance) {
         if (err) {
           return next(err);
         }
         // Successful - redirect to book detail page.
-        res.redirect(thebook.url);
+        res.redirect(thebookinstance.url);
       });
     }
   },
